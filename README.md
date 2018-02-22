@@ -3,6 +3,8 @@
 A simple plugin for generating an xml schema from the compiled classes.
 
 ### Usage
+
+```xml
 <plugin>
     <groupId>com.idvp.plugins</groupId>
     <artifactId>xsd-maven-plugin</artifactId>
@@ -30,3 +32,4 @@ A simple plugin for generating an xml schema from the compiled classes.
         </schemas>
     </configuration>
 </plugin>
+```
