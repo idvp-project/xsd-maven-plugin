@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.idvp.plugins</groupId>
     <artifactId>xsd-maven-plugin</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.1</version>
     <packaging>maven-plugin</packaging>
     <name>Maven JAXB 2.x Plugin Project</name>
     <description>Maven plugin for JAXB 2.x to generate XML Schemas from compiled classes.</description>
@@ -15,10 +15,16 @@
         <maven.plugin.testing.version>2.1</maven.plugin.testing.version>
         <maven.plugin.plugin.version>3.5</maven.plugin.plugin.version>
         <slf4j.version>1.7.7</slf4j.version>
-        <junit.version>4.8.1</junit.version>
+        <junit.version>4.12</junit.version>
         <reflectrions.version>0.9.11</reflectrions.version>
+        <activation.version>1.1.1</activation.version>
     </properties>
     <dependencies>
+        <dependency>
+            <groupId>javax.activation</groupId>
+            <artifactId>activation</artifactId>
+            <version>${activation.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.glassfish.jaxb</groupId>
             <artifactId>jaxb-runtime</artifactId>
@@ -84,25 +90,12 @@
             <version>${reflectrions.version}</version>
         </dependency>
 
-        <!--Test dependencies-->
-
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>${junit.version}</version>
         </dependency>
-        <dependency>
-            <groupId>org.apache.maven.plugin-testing</groupId>
-            <artifactId>maven-plugin-testing-tools</artifactId>
-            <version>${maven.plugin.testing.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.maven.plugin-testing</groupId>
-            <artifactId>maven-plugin-testing-harness</artifactId>
-            <version>${maven.plugin.testing.version}</version>
-            <scope>test</scope>
-        </dependency>
+
         <!-- SLF4J -->
         <dependency>
             <groupId>org.slf4j</groupId>

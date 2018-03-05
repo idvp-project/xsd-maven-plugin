@@ -4,7 +4,6 @@ import com.idvp.plugins.xsd.filters.AnnotatedFilter;
 import com.idvp.plugins.xsd.filters.ExcludeClassNameFilter;
 import com.idvp.plugins.xsd.filters.Filter;
 import com.idvp.plugins.xsd.filters.IncludeClassNameFilter;
-import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.reflections.ReflectionUtils;
 import org.reflections.Reflections;
@@ -13,6 +12,8 @@ import org.reflections.scanners.Scanner;
 import org.reflections.util.ClasspathHelper;
 import org.reflections.util.ConfigurationBuilder;
 import org.reflections.util.FilterBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.regex.Pattern;
@@ -24,14 +25,16 @@ import java.util.regex.Pattern;
 @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
 public class XsdSource {
 
+    private static Logger logger = LoggerFactory.getLogger(XsdSource.class);
+
     @Parameter(required = true)
     private String basePackage;
 
     @Parameter
     private List<String> exclude = new ArrayList<>();
 
-    Set<Class<?>> getJaxbClasses(Log logger) {
-        Scanner scanner = createScanner(logger);
+    Set<Class<?>> getJaxbClasses() {
+        Scanner scanner = createScanner();
 
         ConfigurationBuilder configurationBuilder = new ConfigurationBuilder();
         if (Thread.currentThread().getContextClassLoader() != null) {
@@ -52,7 +55,7 @@ public class XsdSource {
         return Collections.unmodifiableSet(new HashSet<>(classes));
     }
 
-    private Scanner createScanner(Log logger) {
+    private Scanner createScanner() {
         List<Filter> filters = new ArrayList<>();
         filters.add(new IncludeClassNameFilter(Pattern.quote(basePackage) + ".*"));
         filters.add(new AnnotatedFilter());

@@ -1,11 +1,16 @@
 package com.idvp.plugins.xsd;
 
+import com.sun.xml.bind.v2.schemagen.xmlschema.Schema;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
-import org.apache.maven.plugin.logging.Log;
-import org.apache.maven.plugins.annotations.*;
+import org.apache.maven.plugins.annotations.LifecyclePhase;
+import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -28,7 +33,7 @@ import java.util.Set;
 )
 public class XsdMojo extends AbstractMojo {
 
-    private final Log logger;
+    private final Logger logger = LoggerFactory.getLogger(XsdMojo.class);
 
     @Parameter( defaultValue = "${project}", readonly = true )
     private MavenProject project;
@@ -48,10 +53,6 @@ public class XsdMojo extends AbstractMojo {
     @Parameter
     private List<XsdSchema> schemas;
 
-    public XsdMojo() {
-        this.logger = getLog();
-    }
-
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         if (sources == null || sources.isEmpty()) {
@@ -63,6 +64,7 @@ public class XsdMojo extends AbstractMojo {
             return;
         }
 
+        bootstrapJava9ClassLoading();
 
         String targetPath = outputPath;
         if (targetPath == null || targetPath.isEmpty()) {
@@ -79,7 +81,7 @@ public class XsdMojo extends AbstractMojo {
         for (XsdSource source : sources) {
             logger.info("Started: " + source.toString());
 
-            Set<Class<?>> jaxbClasses = source.getJaxbClasses(logger);
+            Set<Class<?>> jaxbClasses = source.getJaxbClasses();
 
             if (logger.isDebugEnabled()) {
                 for (Class<?> $class : jaxbClasses) {
@@ -98,7 +100,6 @@ public class XsdMojo extends AbstractMojo {
                 throw new MojoExecutionException("Cannot create jaxb context", e);
             }
 
-
             try {
                 context.generateSchema(createResolver(targetPath));
             } catch (IOException e) {
@@ -107,6 +108,35 @@ public class XsdMojo extends AbstractMojo {
             }
 
             logger.info("Finished: " + source.toString());
+        }
+    }
+
+    /**
+     * note: При сборке проекта classloader'ом выступает org.codehaus.plexus.classworlds.realm.ClassRealm
+     * note: ClassRealm::loadClass переопределен таким образом, что делегирует загрузку классов "стратегии"
+     * note: ClassRealm::findClass переопределен криво, поэтому возникает проблема с получением стандартного namespace
+     *
+     * Details:
+     *
+     * При работе TXW::create пытается получить информацию о пакете com.sun.xml.bind.v2.schemagen.xmlschema
+     * При этом вызывается метод Package::getAnnotation.
+     * Этот метод в свою очередь в java 9 вызывает не старный метод ClassLoader::loadClass("name"), а новый ClassLoader::loadClass(module, "name")
+     * Метод ClassLoader::loadClass(module, "name") является финальным и не переопределяется в ClassRealm.
+     *
+     * В свою очердь ClassLoader::loadClass(module, "name") сначала пытается найти package-info среди загруженных классов (ClassLoader::findLoadedClass("name")),
+     * а в случае неудачи вызывает ClassLoader::findClass("name")
+     * Последний метод в ClassRealm всегда просто кидает исключение.
+     * В итоге TXW::create не может получить данные о XmlNamespace аннотации при работе с java 9
+     *
+     * Fix:
+     *
+     * Пытаемся в лоб загрузить информацию о пакете
+     */
+    private void bootstrapJava9ClassLoading() {
+        try {
+            Class.forName(Schema.class.getPackage().getName() + ".package-info");
+        } catch (ClassNotFoundException e) {
+            logger.error("Cannot load package-info");
         }
     }
 
